@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#e30613">
+<title>Cash Plus Audit</title>
+
+<!-- مكتبة توليد PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+
+/* إجبار الأرقام لتكون لاتينية فرنسية (1234) */
+body, input, textarea, select, button, .num-lat {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-variant-numeric: lining-nums tabular-nums !important;
+  -webkit-font-feature-settings: "lnum" 1, "tnum" 1 !important;
+  font-feature-settings: "lnum" 1, "tnum" 1 !important;
+}
+
+body{margin:0;background:#f5f5f5;color:#222;padding-bottom:100px}
+.top{background:#e30613;color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+.top-bar{display:flex;align-items:center;gap:14px;max-width:760px;margin:auto}
+.logo-badge{
+  background:#fff;
+  color:#e30613;
+  font-weight:900;
+  font-size:16px;
+  padding:6px 12px;
+  border-radius:8px;
+  letter-spacing:0.5px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+.logo-badge span{color:#d97706}
+.top h1{margin:0;font-size:18px;line-height:1.2}
+.wrap{max-width:760px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+
+label{font-size:13px;font-weight:bold;display:block;margin-bottom:5px;color:#333}
+.lbl-ar{font-size:12px;color:#d97706;font-weight:600;margin-right:4px}
+input,textarea,select{width:100%;padding:11px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+textarea{min-height:70px}
+
+/* الأقسام */
+.sec{border-left:5px solid #556B2F}
+.sec h2{font-size:16px;margin:0 0 4px;color:#111}
+.sec .sec-ar{font-size:14px;color:#d97706;margin-bottom:12px;direction:rtl;text-align:right;font-weight:bold}
+
+.item{padding:12px 0;border-top:1px solid #eee}
+.item:first-of-type{border-top:0}
+.q{margin-bottom:9px}
+
+/* السؤال بالفرنسية: أخضر زيتوني */
+.q-fr{
+  font-size:14px;
+  line-height:1.4;
+  font-weight:bold;
+  color:#4D6322;
+}
+
+/* الترجمة بالعربية: أصفر برتقالي */
+.q-ar{
+  font-size:13.5px;
+  line-height:1.45;
+  color:#D97706;
+  direction:rtl;
+  text-align:right;
+  margin-top:4px;
+  font-weight:600;
+}
+
+.opts{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.opts label{font-weight:normal;margin:0;display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px}
+.opts input{width:auto;cursor:pointer}
+.note{margin-top:8px}
+
+/* شريط الأزرار الثابت في الأسفل */
+.actions{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#fff;
+  padding:10px 14px;
+  border-top:1px solid #ddd;
+  box-shadow:0 -3px 10px rgba(0,0,0,0.08);
+  z-index:100;
+  display:flex;
+  gap:8px;
+  justify-content:center;
+}
+.btn{
+  border:0;
+  border-radius:8px;
+  padding:12px 14px;
+  font-size:14px;
+  font-weight:bold;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  flex:1;
+  text-align:center;
+}
+.btn-red{background:#e30613;color:#fff}
+.btn-dark{background:#222;color:#fff}
+.btn-light{background:#e5e7eb;color:#333;flex:0.6}
+.btn:active{transform:scale(0.98)}
+
+.score{font-size:20px;font-weight:bold;color:#4D6322}
+.small{font-size:12px;color:#666}
+
+/* رأس التقرير المخصص للـ PDF والطباعة */
+.pdf-header{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:2px solid #e30613;
+  padding-bottom:12px;
+  margin-bottom:15px;
+}
+
+@media print{
+  .top, .actions, .no-print{display:none!important}
+  body{padding-bottom:0;background:#fff}
+  .pdf-header{display:flex!important}
+  .card{box-shadow:none;border:1px solid #e5e5e5;break-inside:avoid;margin:8px 0;padding:10px}
+  .wrap{max-width:none;padding:0}
+  .item{break-inside:avoid}
+  input,textarea{border:none;border-bottom:1px solid #ccc;border-radius:0;padding:4px 0}
+  .q-fr{color:#4D6322!important}
+  .q-ar{color:#D97706!important}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-bar">
+    <div class="logo-badge">CASH<span>PLUS</span></div>
+    <div>
+      <h1>Audit & Inspection</h1>
+      <div class="small" style="color:#ffe5e5">Guide d’Audit et d’Inspection des Agences</div>
+    </div>
+  </div>
+</div>
+
+<div id="auditContent">
+  <main class="wrap">
+    
+    <!-- ترويسة التقرير الخاصة بالـ PDF -->
+    <div id="pdfHeaderBox" class="pdf-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="logo-badge" style="border:1px solid #e30613">CASH<span>PLUS</span></div>
+        <div>
+          <h2 style="margin:0;font-size:18px;color:#e30613">Cash Plus — Audit & Inspection</h2>
+          <div style="font-size:12px;color:#555">Rapport de visite d'agence / تقرير مراقبة وتدقيق الوكالة</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>Date et Heure <span class="lbl-ar">(التاريخ والوقت)</span></label>
+          <input id="dt" type="text" autocomplete="off">
+        </div>
+        <div>
+          <label>Agence & Code <span class="lbl-ar">(الوكالة والرمز)</span></label>
+          <input id="agency" placeholder="Ex: Casablanca Oasis - 1234">
+        </div>
+        <div>
+          <label>Responsable (CC) <span class="lbl-ar">(المسؤول المكلف بالزبناء)</span></label>
+          <input id="cc">
+        </div>
+        <div>
+          <label>Superviseur (CCS) <span class="lbl-ar">(المشرف)</span></label>
+          <input id="ccs">
+        </div>
+      </div>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="card">
+      <div class="score">Taux de conformité / نسبة المطابقة: <span id="score" class="num-lat">0%</span></div>
+      <div class="small">Calcul indicatif basé sur les points évalués Conforme / Non Conforme.</div>
+      <div class="small" style="direction:rtl;text-align:right;margin-top:3px;color:#d97706;">حساب تقديري مبني على النقاط المطابقة / غير المطابقة المقيمة.</div>
+    </div>
+
+    <div class="card">
+      <label>Remarques & Recommandations générales <span class="lbl-ar">(ملاحظات وتوصيات عامة)</span></label>
+      <textarea id="general"></textarea>
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label>Signature CCS <span class="lbl-ar">(توقيع المشرف)</span></label>
+          <input id="sigccs">
+        </div>
+        <div>
+          <label>Signature CC <span class="lbl-ar">(توقيع المسؤول)</span></label>
+          <input id="sigcc">
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- الأزرار المحدثة في الأسفل -->
+<div class="actions">
+  <!-- الزر الأكثر موثوقية ويعمل مباشرة على كل هواتف أندرويد لحفظ PDF -->
+  <button class="btn btn-red" onclick="saveAsPDF()">📄 حفظ كـ PDF / طباعة</button>
+  <button class="btn btn-dark" onclick="directDownloadPDF()">📥 تحميل مباشر</button>
+  <button class="btn btn-light" onclick="resetForm()">↻ جديد</button>
+</div>
+
+<script>
+function toLatin(str) {
+  if (str == null) return '';
+  const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+  return String(str).replace(/[٠-٩]/g, d => arabicDigits.indexOf(d));
+}
+
+function getFrenchNow() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+const data = [
+  {
+    title_fr: "1. Identité Visuelle et Façade / Enseigne & Branding",
+    title_ar: "1. الهوية البصرية والواجهة / اللافتة والعلامة التجارية",
+    questions: [
+      ["Qualité, propreté et intégrité des panneaux officiels et drapeaux publicitaires (Enseigne)", "جودة ونظافة وسلامة اللوحات الرسمية والأعلام الإشهارية (اللافتة)"],
+      ["État des vitrines (Film One Way) et visibilité des horaires d'ouverture pour les clients", "حالة الواجهات الزجاجية (ملصق One Way) ووضوح أوقات العمل للزبناء"],
+      ["Visibilité de l'agence et qualité de l'éclairage nocturne de l'enseigne principale", "وضوح رؤية الوكالة وجودة الإضاءة الليلية للافتة الرئيسية"],
+      ["Propreté et aménagement des abords / entrée extérieure (accès facile et sans encombrement/tapis porte)", "نظافة وتهيئة المحيط الخارجي والمدخل (سهولة الولوج، خلوه من العوائق وحصيرة الباب)"]
+    ]
+  },
+  {
+    title_fr: "2. Environnement intérieur / Équipements & Aménagement",
+    title_ar: "2. البيئة الداخلية / التجهيزات والتهيئة",
+    questions: [
+      ["Propreté et agencement de l'espace client (aéré, sans odeur, sièges propres et poubelle disponible)", "نظافة وترتيب فضاء الزبناء (مهوّى، بدون روائح، مقاعد نظيفة وتوفر سلة المهملات)"],
+      ["Ordre au guichet et affichage clair de la grille tarifaire et des prix pour les clients", "الترتيب في شباك الخدمة وتعليق واضح لجدول التعريفات والأسعار للزبناء"],
+      ["État et bon fonctionnement du matériel informatique (PC, Scanner, Imprimante, Cachet officiel)", "حالة واشتغال المعدات المعلوماتية (حاسوب، ماسح ضوئي، طابعة، الختم الرسمي)"],
+      ["Disponibilité du dossier de Scan des transferts internationaux", "توفر ملف المسح الضوئي (Scan) الخاص بالتحويلات الدولية"],
+      ["Classement, organisation et sécurisation des archives et dossiers sensibles des clients", "ترتيب وتنظيم وحماية الأرشيف والملفات الحساسة للزبناء"],
+      ["Vérification du deuxième pc avec l’utilisation conforme des accès", "فحص الحاسوب الثاني والتحقق من الاستخدام السليم والمطابق لصلاحيات الدخول"],
+      ["Vérification que la vitrine est vide", "التحقق من أن الواجهة الزجاجية فارغة ونظيفة تماماً"],
+      ["Vérification du dossier scan sur pc et boite archive dédiée pour les envois internationaux", "فحص مجلد المسح الضوئي بالحاسوب وصندوق الأرشيف المخصص للإرساليات الدولية"],
+      ["Vérification archive physique bien propre avec code agence et date", "التحقق من نظافة وترتيب الأرشيف الورقي مع تدوين رمز الوكالة والتاريخ"],
+      ["Vérification la propreté des rayonnages", "التحقق من نظافة الرفوف وخزانات الترتيب"],
+      ["Vérification la possibilité de déplacer l’archive physique d’une petite agence au grande en gardant deux ans dans la petite", "التحقق من إمكانية نقل الأرشيف الورقي لوكالة كبرى مع الاحتفاظ بسنتين في الوكالة الصغرى"]
+    ]
+  },
+  {
+    title_fr: "3. Personnel et Tenue Professionnelle (CC / Personnel)",
+    title_ar: "3. الموظفون والهندام المهني (المكلف بالزبناء / الموظفون)",
+    questions: [
+      ["Apparence générale du chargé de clientèle (tenue soignée, propre et professionnelle)", "المظهر العام للمكلف بالزبناء (هندام لائق، نظيف ومهني)"],
+      ["Qualité de l'accueil et relation client (sourire, courtoisie, promptitude dans le service)", "جودة الاستقبال والعلاقة مع الزبناء (الابتسامة، اللباقة والسرعة في الخدمة)"],
+      ["Obligation de mise à jour les données OCR", "الإلزامية في تحيين وتحديث بيانات القارئ الآلي (OCR)"],
+      ["Statut, stabilité et formation de l’agent en agence (Titulaire/Remplaçant/Nouveau)", "وضعية واستقرار وتكوين الموظف بالوكالة (مرسم / معوّض / جديد)"]
+    ]
+  },
+  {
+    title_fr: "4. Animation et suivi en Agence",
+    title_ar: "4. التنشيط والمتابعة داخل الوكالة",
+    questions: [
+      ["Vérification et suivi du tableau d’objectifs et animation des nouveaux produits", "التحقق ومتابعة لوحة الأهداف وتنشيط تسويق المنتجات الجديدة"],
+      ["Vérifier produit faibles et écart par rapport aux objectifs identifiés", "فحص المنتجات ذات الأداء الضعيف وحساب الفارق مقارنة بالأهداف"],
+      ["Exemple de communication client démontré par ccs", "نموذج التواصل مع الزبناء الموضح والمشروح من طرف المشرف (CCS)"],
+      ["Vérification du catégorie (Gold/Silver/Bronze/Booster) et communication spéciale pour chaque catégorie", "فحص صنف الوكالة (Gold/Silver/Bronze/Booster) والتواصل المخصص لكل فئة"],
+      ["Le taux de réactivité du cc au groupe WhatsApp et émail", "مدى سرعة تفاعل المكلف بالزبناء على مجموعة الواتساب والبريد الإلكتروني"],
+      ["Evaluation de la performance du cc tout en informant le responsable de sa qualité", "تقييم أداء المكلف بالزبناء مع إبلاغ المسؤول بمستوى جودة عمله"],
+      ["Vérification des produits inactives", "حصر ومراقبة المنتجات غير المفعلة / غير النشطة"],
+      ["Donner la priorité aux nouveaux produits tout en luttant contre le zéro", "إعطاء الأولوية للمنتجات الجديدة والحرص على تفادي أي إنجاز صفري"],
+      ["Obligation d’atteindre 100% pour les objectifs", "ضرورة العمل على تحقيق نسبة 100% من الأهداف المسطرة"]
+    ]
+  },
+  {
+    title_fr: "5. Sécurité, Protection et Surveillance",
+    title_ar: "5. الأمن والحماية والمراقبة",
+    questions: [
+      ["Contrôle physique du caisse agence, contrôle aussi que le registre de passation", "المراقبة الفعلية لصندوق الوكالة ومراقبة سجل تسليم المهام والعهد"],
+      ["Petite caisse présente et correctement arrangée sans dépasser 10 000 dhs et sans laisser à la fin journée sur le comptoir", "توفر الصندوق الصغير مرتباً بما لا يتعدى 10000 درهم وعدم تركه فوق المكتب بنهاية اليوم"],
+      ["Interdiction d’entrée étranger avec un contrôle de la caméra et aussi pour l’ouverture et fermeture d’agence", "منع دخول أي شخص غريب مع مراقبة الكاميرات وأوقات فتح وإغلاق الوكالة"],
+      ["Confirmation de la passation réelle par comptage exacte du fonds", "تأكيد التسليم الفعلي للمهام عبر العد الدقيق للسيولة النقدية (Fonds)"],
+      ["Refus de versement par téléphone avec la validation du superviseur", "رفض إجراء أو تحويل أي مبالغ عبر الهاتف إلا بموافقة المشرف"],
+      ["Interdit de livrer colis sans Scan", "منع تسليم الطرود دون إجراء المسح الضوئي (Scan)"],
+      ["Vérification des CIN client oublié en agence et l’envoyer au siège chaque trimestre 3/6/9/12", "حصر بطاقات التعريف المنسية وإرسالها للمقر كل 3 أشهر (شهر 3 / 6 / 9 / 12)"],
+      ["Vérification horaire deux cc", "مراقبة ومطابقة جدول توقيت العمل لموظفي الوكالة"],
+      ["Vérification de la somme livrée au client à travers Ms surtout les montant dépassé 5000 dhs", "التحقق من المبالغ المسلمة للزبون عبر النظام خصوصاً المبالغ التي تتجاوز 5000 درهم"],
+      ["Contrôle des charges en Odoo", "مراقبة وتسجيل المصاريف والنفقات على نظام أودو (Odoo)"],
+      ["Interdis d’avoir les petites monnaies d’un étranger", "منع استبدال أو قبول الصرف والقطع النقدية من أشخاص غرباء"],
+      ["Vérification fermeture boite DVR", "التحقق من إغلاق خزانة جهاز تسجيل الكاميرات (DVR) بإحكام"],
+      ["Interdiction d’avoir les téléphones des clients pour éviter l’escroquerie", "منع استخدام أو مسك هواتف الزبناء تفادياً لمخاطر النصب والاحتيال"]
+    ]
+  },
+  {
+    title_fr: "6. Opérations / Conformité",
+    title_ar: "6. العمليات والامتثال القانوني",
+    questions: [
+      ["Respect des règles de conformité", "الالتزام التام بقواعد الامتثال والضوابط القانونية"],
+      ["Être vigilant pour toutes transactions de grande somme", "توخي الحيطة واليقظة التامة في جميع المعاملات المالية ذات المبالغ الكبيرة"],
+      ["La vigilance en matière de lutte contre le blanchiment d’argent et le trafic illicite", "اليقظة والصرامة في مجال مكافحة غسل الأموال والأنشطة غير المشروعة"]
+    ]
+  }
+];
+
+const root = document.getElementById('sections');
+let n = 0;
+
+data.forEach((s) => {
+  let c = document.createElement('div');
+  c.className = 'card sec';
+  c.innerHTML = `<h2>${toLatin(s.title_fr)}</h2><div class="sec-ar">${toLatin(s.title_ar)}</div>`;
+  
+  s.questions.forEach((q, qi) => {
+    let id = 'q' + (n++);
+    c.innerHTML += `
+      <div class="item">
+        <div class="q">
+          <div class="q-fr"><span class="num-lat">${qi + 1}.</span> ${toLatin(q[0])}</div>
+          <div class="q-ar">${toLatin(q[1])}</div>
+        </div>
+        <div class="opts">
+          <label><input type="radio" name="${id}" value="C" onchange="calc()"> Conforme (مطابق)</label>
+          <label><input type="radio" name="${id}" value="NC" onchange="calc()"> Non Conforme (غير مطابق)</label>
+          <label><input type="radio" name="${id}" value="NA" onchange="calc()"> N/A</label>
+        </div>
+        <div class="note">
+          <input id="${id}n" placeholder="Remarques & Recommandations / ملاحظات وتوصيات">
+        </div>
+      </div>`;
+  });
+  root.appendChild(c);
+});
+
+document.getElementById('dt').value = getFrenchNow();
+
+function calc() {
+  let c = 0, t = 0;
+  for (let i = 0; i < n; i++) {
+    let r = document.querySelector(`input[name=q${i}]:checked`);
+    if (r && r.value !== 'NA') {
+      t++;
+      if (r.value === 'C') c++;
+    }
+  }
+  const pct = t ? Math.round(c / t * 100) : 0;
+  document.getElementById('score').textContent = toLatin(pct) + '%';
+  saveDraft();
+}
+
+function saveDraft() {
+  let obj = {
+    dt: document.getElementById('dt').value,
+    agency: document.getElementById('agency').value,
+    cc: document.getElementById('cc').value,
+    ccs: document.getElementById('ccs').value,
+    general: document.getElementById('general').value,
+    sigccs: document.getElementById('sigccs').value,
+    sigcc: document.getElementById('sigcc').value,
+    answers: []
+  };
+  for (let i = 0; i < n; i++) {
+    let r = document.querySelector(`input[name=q${i}]:checked`);
+    obj.answers.push({
+      v: r ? r.value : '',
+      note: document.getElementById('q' + i + 'n').value
+    });
+  }
+  localStorage.setItem('cashplusAuditDraft', JSON.stringify(obj));
+}
+
+function loadDraft() {
+  let x = localStorage.getItem('cashplusAuditDraft');
+  if (!x) return;
+  let o = JSON.parse(x);
+  ['dt', 'agency', 'cc', 'ccs', 'general', 'sigccs', 'sigcc'].forEach(k => {
+    if (o[k] != null) document.getElementById(k).value = o[k];
+  });
+  o.answers.forEach((a, i) => {
+    if (a.v) {
+      let r = document.querySelector(`input[name=q${i}][value="${a.v}"]`);
+      if (r) r.checked = true;
+    }
+    if (document.getElementById('q' + i + 'n')) {
+      document.getElementById('q' + i + 'n').value = a.note || '';
+    }
+  });
+  calc();
+}
+
+// 1. الدالة المضمونة 100% التي تعمل في كل الهواتف عبر خدمة الطباعة وحفظ PDF
+function saveAsPDF() {
+  window.print();
+}
+
+// 2. دالة التحميل المباشر مع استرجاع آمن تلقائي عند وجود قيود في WebView
+function directDownloadPDF() {
+  const header = document.getElementById('pdfHeaderBox');
+  header.style.display = 'flex';
+
+  const element = document.getElementById('auditContent');
+  const agencyName = document.getElementById('agency').value.trim() || 'Agence';
+  const cleanAgency = agencyName.replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `Audit_CashPlus_${cleanAgency}_${new Date().toISOString().slice(0,10)}.pdf`;
+
+  const opt = {
+    margin: [8, 8, 8, 8],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    header.style.display = 'none';
+  }).catch((err) => {
+    header.style.display = 'none';
+    // في حال منع الهاتف تحميل الملف المباشر يتم فتحه فوراً كنافذة PDF للحفظ
+    window.print();
+  });
+}
+
+function resetForm() {
+  if (confirm('هل تريد بدء زيارة جديدة وإفراغ الحقول؟')) {
+    localStorage.removeItem('cashplusAuditDraft');
+    location.reload();
+  }
+}
+
+loadDraft();
+</script>
+</body>
+</html>
